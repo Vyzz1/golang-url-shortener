@@ -7,6 +7,8 @@ import (
 	db "url-shortener/db/sqlc"
 	"url-shortener/utils"
 
+	"net/url"
+
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
@@ -14,11 +16,28 @@ import (
 )
 
 type CreateUrlRequest struct {
-	LongUrl string `json:"long_url" binding:"required,url"`
+	LongUrl string `json:"long_url" binding:"required"`
 }
 
 type CreateUrlResponse struct {
 	ShortUrl string `json:"short_url"`
+}
+
+func isValidURL(raw string) bool {
+	u, err := url.ParseRequestURI(raw)
+	if err != nil {
+		return false
+	}
+
+	if u.Scheme != "http" && u.Scheme != "https" {
+		return false
+	}
+
+	if u.Host == "" {
+		return false
+	}
+
+	return true
 }
 
 func (s *Server) createUrl(ctx *gin.Context) {
@@ -32,6 +51,11 @@ func (s *Server) createUrl(ctx *gin.Context) {
 		maxRetries = 5
 		codeLen    = 7
 	)
+
+	if !isValidURL(req.LongUrl) {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid URL format"})
+		return
+	}
 
 	var shortCode string
 
