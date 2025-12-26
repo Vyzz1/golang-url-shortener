@@ -1,0 +1,4 @@
+ALTER TABLE clicks
+ADD COLUMN device_type VARCHAR(50);
+ALTER TABLE clicks
+ADD COLUMN country VARCHAR(100);
