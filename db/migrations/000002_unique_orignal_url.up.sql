@@ -1,0 +1,1 @@
+CREATE UNIQUE INDEX idx_unique_short_code ON urls (short_code);

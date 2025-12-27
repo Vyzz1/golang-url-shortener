@@ -1,0 +1,49 @@
+package api
+
+import (
+	"url-shortener/utils"
+
+	db "url-shortener/db/sqlc"
+
+	"github.com/gin-gonic/gin"
+)
+
+type Server struct {
+	router *gin.Engine
+	config *utils.Config
+	store  db.Store
+}
+
+func NewServer(config *utils.Config, store db.Store) *Server {
+	server := &Server{
+		config: config,
+		store:  store,
+	}
+	server.setupRouter()
+	return server
+}
+
+func (s *Server) setupRouter() {
+	s.router = gin.Default()
+
+	s.router.GET("/:short_code", s.RedirectToLongUrl)
+
+	apiRoutes := s.router.Group("/api")
+
+	apiRoutes.GET("/", func(ctx *gin.Context) {
+		ctx.JSON(200, gin.H{
+			"message": "URL Shortener API is running!",
+		})
+	})
+	apiRoutes.GET("/health", func(ctx *gin.Context) {
+		ctx.JSON(200, gin.H{
+			"status": "UP",
+		})
+	})
+
+	apiRoutes.POST("/urls", s.createUrl)
+
+}
+func (s *Server) Start(address string) error {
+	return s.router.Run(address)
+}

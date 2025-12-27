@@ -9,6 +9,7 @@ import (
 type Config struct {
 	HttpServerAddress string `mapstructure:"HttpServerAddress"`
 	DBSOURCE          string `mapstructure:"DB_SOURCE"`
+	BaseURL           string `mapstructure:"BASE_URL"`
 }
 
 func LoadConfig(path string) (config Config, err error) {
