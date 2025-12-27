@@ -24,6 +24,19 @@ func (q *Queries) CheckShortCodeExists(ctx context.Context, shortCode string) (b
 	return exists, err
 }
 
+const countURLs = `-- name: CountURLs :one
+SELECT COUNT(*) AS url_count
+FROM urls
+WHERE is_active = true
+`
+
+func (q *Queries) CountURLs(ctx context.Context) (int64, error) {
+	row := q.db.QueryRow(ctx, countURLs)
+	var url_count int64
+	err := row.Scan(&url_count)
+	return url_count, err
+}
+
 const createURL = `-- name: CreateURL :one
 
 INSERT INTO urls (short_code, original_url)
