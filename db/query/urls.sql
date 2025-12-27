@@ -40,3 +40,8 @@ SELECT EXISTS(
 UPDATE urls
 SET is_active = false
 WHERE short_code = $1;
+
+-- name: CountURLs :one
+SELECT COUNT(*) AS url_count
+FROM urls
+WHERE is_active = true;

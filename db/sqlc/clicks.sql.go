@@ -11,6 +11,62 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+const countClicksByURLID = `-- name: CountClicksByURLID :one
+SELECT COUNT(*) AS click_count
+FROM clicks
+WHERE url_id = $1
+`
+
+func (q *Queries) CountClicksByURLID(ctx context.Context, urlID pgtype.Int8) (int64, error) {
+	row := q.db.QueryRow(ctx, countClicksByURLID, urlID)
+	var click_count int64
+	err := row.Scan(&click_count)
+	return click_count, err
+}
+
+const getClicksByURLID = `-- name: GetClicksByURLID :many
+
+SELECT id, url_id, clicked_at, ip_address, user_agent, referer, device_type, country FROM clicks
+WHERE url_id = $1
+ORDER BY clicked_at DESC
+LIMIT $2 OFFSET $3
+`
+
+type GetClicksByURLIDParams struct {
+	UrlID  pgtype.Int8 `json:"urlId"`
+	Limit  int32       `json:"limit"`
+	Offset int32       `json:"offset"`
+}
+
+func (q *Queries) GetClicksByURLID(ctx context.Context, arg GetClicksByURLIDParams) ([]Click, error) {
+	rows, err := q.db.Query(ctx, getClicksByURLID, arg.UrlID, arg.Limit, arg.Offset)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []Click{}
+	for rows.Next() {
+		var i Click
+		if err := rows.Scan(
+			&i.ID,
+			&i.UrlID,
+			&i.ClickedAt,
+			&i.IpAddress,
+			&i.UserAgent,
+			&i.Referer,
+			&i.DeviceType,
+			&i.Country,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const insertClick = `-- name: InsertClick :one
 INSERT INTO clicks (url_id, ip_address, clicked_at, user_agent, referer, device_type, country)
 VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id, url_id, clicked_at, ip_address, user_agent, referer, device_type, country

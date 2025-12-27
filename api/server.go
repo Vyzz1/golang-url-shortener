@@ -41,9 +41,15 @@ func (s *Server) setupRouter() {
 		})
 	})
 
-	apiRoutes.POST("/urls", s.createUrl)
+	apiRoutes.GET("/url", s.GetListUrls)
+
+	apiRoutes.POST("/url", s.createUrl)
+
+	apiRoutes.GET("/url/:url_id/stats", s.GetUrlStats)
+	apiRoutes.GET("/url/:url_id/stats/count", s.GetUrlClickCount)
 
 }
+
 func (s *Server) Start(address string) error {
 	return s.router.Run(address)
 }
