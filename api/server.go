@@ -27,7 +27,8 @@ func NewServer(config *utils.Config, store db.Store) *Server {
 func (s *Server) setupRouter() {
 	s.router = gin.Default()
 
-	s.router.Use(middleware.CORS(s.config.FRONTEND_URL))
+	s.router.Use(middleware.CORS(s.config.FrontendURL))
+	s.router.Use(middleware.RateLimit())
 
 	s.router.GET("/:short_code", s.RedirectToLongUrl)
 
@@ -46,7 +47,7 @@ func (s *Server) setupRouter() {
 
 	apiRoutes.GET("/url", s.GetListUrls)
 
-	apiRoutes.POST("/url", s.CreateUrl)
+	apiRoutes.POST("/url/shorten", s.CreateUrl)
 
 	apiRoutes.GET("/url/:url_id/stats", s.GetUrlStats)
 	apiRoutes.GET("/url/:url_id/stats/count", s.GetUrlClickCount)

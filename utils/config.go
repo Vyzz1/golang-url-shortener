@@ -7,10 +7,10 @@ import (
 )
 
 type Config struct {
-	HttpServerAddress string `mapstructure:"HttpServerAddress"`
-	DBSOURCE          string `mapstructure:"DB_SOURCE"`
+	HttpServerAddress string `mapstructure:"HTTP_SERVER_ADDRESS"`
+	DbSource          string `mapstructure:"DB_SOURCE"`
 	BaseURL           string `mapstructure:"BASE_URL"`
-	FRONTEND_URL      string `mapstructure:"FRONTEND_URL"`
+	FrontendURL       string `mapstructure:"FRONTEND_URL"`
 }
 
 func LoadConfig(path string) (config Config, err error) {
@@ -22,13 +22,11 @@ func LoadConfig(path string) (config Config, err error) {
 	viper.AutomaticEnv()
 
 	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
-	err = viper.ReadInConfig()
-	if err != nil {
-		return
-	}
+	_ = viper.ReadInConfig()
+
 	err = viper.Unmarshal(&config)
 	if err != nil {
-		return
+		return config, err
 	}
 	return config, nil
 }
