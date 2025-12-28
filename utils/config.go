@@ -10,6 +10,7 @@ type Config struct {
 	HttpServerAddress string `mapstructure:"HttpServerAddress"`
 	DBSOURCE          string `mapstructure:"DB_SOURCE"`
 	BaseURL           string `mapstructure:"BASE_URL"`
+	FRONTEND_URL      string `mapstructure:"FRONTEND_URL"`
 }
 
 func LoadConfig(path string) (config Config, err error) {
