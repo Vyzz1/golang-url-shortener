@@ -12,12 +12,16 @@ import (
 
 type Querier interface {
 	CheckShortCodeExists(ctx context.Context, shortCode string) (bool, error)
+	CountAllClicks(ctx context.Context) (int64, error)
 	CountClicksByURLID(ctx context.Context, urlID pgtype.Int8) (int64, error)
+	CountClicksToday(ctx context.Context) (int64, error)
 	CountURLs(ctx context.Context) (int64, error)
+	CountURLsToday(ctx context.Context) (int64, error)
 	// db/queries/urls.sql
 	CreateURL(ctx context.Context, arg CreateURLParams) (Url, error)
 	DeactivateURL(ctx context.Context, shortCode string) error
 	GetClicksByURLID(ctx context.Context, arg GetClicksByURLIDParams) ([]Click, error)
+	GetTopURLs(ctx context.Context, limit int32) ([]GetTopURLsRow, error)
 	GetURLByShortCode(ctx context.Context, shortCode string) (Url, error)
 	GetURLStats(ctx context.Context, shortCode string) (GetURLStatsRow, error)
 	IncrementClickCount(ctx context.Context, shortCode string) error

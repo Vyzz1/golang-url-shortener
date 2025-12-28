@@ -3,8 +3,10 @@ package api
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net/http"
 	"strconv"
+	"time"
 	db "url-shortener/db/sqlc"
 	"url-shortener/utils"
 
@@ -41,7 +43,7 @@ func isValidURL(raw string) bool {
 	return true
 }
 
-func (s *Server) createUrl(ctx *gin.Context) {
+func (s *Server) CreateUrl(ctx *gin.Context) {
 	var req CreateUrlRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
@@ -95,6 +97,11 @@ func (s *Server) createUrl(ctx *gin.Context) {
 func (s *Server) RedirectToLongUrl(ctx *gin.Context) {
 	shortCode := ctx.Param("short_code")
 
+	if utils.ValidateShortCode(shortCode) == false {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid short code format"})
+		return
+	}
+
 	urlRecord, err := s.store.GetURLByShortCode(ctx, shortCode)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
@@ -107,8 +114,12 @@ func (s *Server) RedirectToLongUrl(ctx *gin.Context) {
 	}
 
 	go func() {
+		bgCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+
 		clickData := extractClickData(ctx)
-		s.store.InsertClick(context.Background(), db.InsertClickParams{
+
+		_, err := s.store.InsertClick(bgCtx, db.InsertClickParams{
 			UrlID:      pgtype.Int8{Int64: urlRecord.ID, Valid: true},
 			IpAddress:  clickData.IpAddress,
 			UserAgent:  clickData.UserAgent,
@@ -117,10 +128,39 @@ func (s *Server) RedirectToLongUrl(ctx *gin.Context) {
 			DeviceType: clickData.DeviceType,
 		})
 
-		s.store.IncrementClickCount(context.Background(), shortCode)
+		if err != nil {
+			fmt.Println("Failed to log click data:", err)
+			return
+		}
+
+		err = s.store.IncrementClickCount(bgCtx, shortCode)
+		if err != nil {
+			fmt.Println("Failed to increment click count:", err)
+			return
+		}
 	}()
 
 	ctx.Redirect(http.StatusFound, urlRecord.OriginalUrl)
+}
+
+func isDuplicateKeyError(err error) bool {
+	var pgErr *pgconn.PgError
+	if errors.As(err, &pgErr) {
+		return pgErr.Code == "23505"
+	}
+	return false
+}
+
+func extractClickData(ctx *gin.Context) db.InsertClickParams {
+	ip := utils.GetClientIP(ctx)
+
+	return db.InsertClickParams{
+		IpAddress:  pgtype.Text{String: ip, Valid: true},
+		UserAgent:  pgtype.Text{String: ctx.Request.UserAgent(), Valid: true},
+		Referer:    pgtype.Text{String: ctx.Request.Referer(), Valid: true},
+		Country:    pgtype.Text{String: utils.GetCountryFromIP(ip), Valid: true},
+		DeviceType: pgtype.Text{String: utils.DetectDeviceType(ctx.Request.UserAgent()), Valid: true},
+	}
 }
 
 type GetListUrlsRequest struct {
@@ -134,6 +174,7 @@ type UrlResponse struct {
 	ShortCode   string           `json:"short_code"`
 	CreatedAt   pgtype.Timestamp `json:"created_at"`
 	ClickCount  int64            `json:"click_count"`
+	TinyUrl     string           `json:"tiny_url"`
 }
 
 type GetListUrlsResponse struct {
@@ -178,6 +219,7 @@ func (s *Server) GetListUrls(ctx *gin.Context) {
 			ShortCode:   u.ShortCode,
 			CreatedAt:   u.CreatedAt,
 			ClickCount:  u.ClickCount.Int64,
+			TinyUrl:     s.config.BaseURL + "/" + u.ShortCode,
 		}
 	}
 
@@ -299,22 +341,4 @@ func (s *Server) GetUrlClickCount(ctx *gin.Context) {
 		return
 	}
 	ctx.JSON(http.StatusOK, GetUrlClickCountResponse{ClickCount: clickCount})
-}
-
-func isDuplicateKeyError(err error) bool {
-	var pgErr *pgconn.PgError
-	if errors.As(err, &pgErr) {
-		return pgErr.Code == "23505"
-	}
-	return false
-}
-
-func extractClickData(ctx *gin.Context) db.InsertClickParams {
-	return db.InsertClickParams{
-		IpAddress:  pgtype.Text{String: utils.GetClientIP(ctx), Valid: true},
-		UserAgent:  pgtype.Text{String: ctx.Request.UserAgent(), Valid: true},
-		Referer:    pgtype.Text{String: ctx.Request.Referer(), Valid: true},
-		Country:    pgtype.Text{String: utils.GetCountryFromIP(utils.GetClientIP(ctx)), Valid: true},
-		DeviceType: pgtype.Text{String: utils.DetectDeviceType(ctx.Request.UserAgent()), Valid: true},
-	}
 }
