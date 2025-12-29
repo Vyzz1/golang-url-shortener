@@ -8,7 +8,7 @@ import (
 
 type Config struct {
 	HttpServerAddress string `mapstructure:"HTTP_SERVER_ADDRESS"`
-	DbSource          string `mapstructure:"DB_SOURCE"`
+	DBSOURCE          string `mapstructure:"DB_SOURCE"`
 	BaseURL           string `mapstructure:"BASE_URL"`
 	FrontendURL       string `mapstructure:"FRONTEND_URL"`
 }

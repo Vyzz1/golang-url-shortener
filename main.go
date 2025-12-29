@@ -16,7 +16,7 @@ func main() {
 		panic(err)
 	}
 
-	store, err := db.NewStore(config.DbSource)
+	store, err := db.NewStore(config.DBSOURCE)
 	if err != nil {
 		log.Fatal("cannot create store:", err)
 		panic(err)
