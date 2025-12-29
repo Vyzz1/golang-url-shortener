@@ -1,3 +1,5 @@
 frontend/** linguist-vendored
 frontend/** linguist-generated
 .env.local linguist-generated
+*.sh linguist-vendored
+*.sh linguist-generated

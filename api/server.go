@@ -1,6 +1,7 @@
 package api
 
 import (
+	"time"
 	middleware "url-shortener/middlewares"
 	"url-shortener/utils"
 
@@ -34,7 +35,8 @@ func (s *Server) setupRouter() {
 
 	s.router.GET("/health", func(ctx *gin.Context) {
 		ctx.JSON(200, gin.H{
-			"status": "UP",
+			"status":    "healthy",
+			"timestamp": time.Now().UTC().Format(time.RFC3339),
 		})
 	})
 	apiRoutes := s.router.Group("/api")

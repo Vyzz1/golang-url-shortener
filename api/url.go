@@ -202,6 +202,7 @@ func (s *Server) GetListUrls(ctx *gin.Context) {
 		Offset: offset,
 	})
 	if err != nil {
+		fmt.Println("Error retrieving URLs:", err)
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve URLs"})
 		return
 	}
