@@ -1,0 +1,27 @@
+services:
+  postgres13:
+    image: postgres:13.21-alpine3.21
+    environment:
+      POSTGRES_USER: root
+      POSTGRES_PASSWORD: secret
+      POSTGRES_DB: url_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  golang-url-shortener:
+    build: .
+    ports:
+      - "8080:8080"
+    depends_on:
+      - postgres13
+    command: ["/app/wait-for-it.sh", "postgres13:5432", "--", "/app/main"]
+    environment:
+      DB_SOURCE: postgres://root:secret@postgres13:5432/url_db?sslmode=disable
+      HTTP_SERVER_ADDRESS: ":8080"
+      FRONTEND_URL: "http://localhost:3000"
+      BASE_URL: "http://localhost:8080"
+
+volumes:
+  pgdata:
