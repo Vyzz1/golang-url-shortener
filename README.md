@@ -18,11 +18,20 @@
 
 # Mô tả bài toán
 
+## Hiểu bài toán
+
 Bài toán yêu cầu xây dựng một backend service rút gọn URL tương tự như Bitly hoặc TinyURL.
 Hệ thống cho phép người dùng chuyển đổi một URL dài thành một URL ngắn, dễ chia sẻ.
 Khi truy cập URL ngắn, hệ thống sẽ redirect người dùng về URL gốc và đồng thời ghi nhận lượt click.
 Ngoài các chức năng cơ bản, hệ thống cần được thiết kế để xử lý concurrency, đảm bảo hiệu năng,
 và có khả năng mở rộng khi traffic tăng cao.
+
+## Use cases thực tế:
+
+- Marketing campaigns: Tracking hiệu quả từng kênh
+- Social media: Links gọn gàng hơn trên Twitter, Instagram
+- Print materials: QR codes với short URLs
+- Analytics: Phân tích hành vi người dùng
 
 ---
 
