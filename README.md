@@ -256,14 +256,14 @@ Location: https://example.com/very/long/path
 
 ### 3. Danh sách URLs
 
-**Endpoint:** `GET /api/urls`
+**Endpoint:** `GET /api/url`
 
 **Query Parameters:**
 
 - `limit` (optional): Số items per page, default = 10, max = 100
 - `page` (optional): Page number, bắt đầu từ 0, default = 0
 
-**Example:** `GET /api/urls?limit=20&page=0`
+**Example:** `GET /api/url?limit=20&page=0`
 
 **Response:** `200 OK`
 
@@ -292,14 +292,14 @@ Location: https://example.com/very/long/path
 
 ### 4. Analytics chi tiết
 
-**Endpoint:** `GET /api/stats/:url_id`
+**Endpoint:** `GET /api/url/:url_id/stats`
 
 **Query Parameters:**
 
 - `limit` (optional): Số items per page, default = 10
 - `page` (optional): Page number, default = 0
 
-**Example:** `GET /api/stats/1?limit=50&page=0`
+**Example:** `GET /api/url/5/stats?limit=100&page=10`
 
 **Response:** `200 OK`
 
@@ -327,9 +327,9 @@ Location: https://example.com/very/long/path
 
 ### 5. Click Count
 
-**Endpoint:** `GET /api/clicks/:url_id`
+**Endpoint:** `GET /api/url/:url_id/stats/count`
 
-**Example:** `GET /api/clicks/1`
+**Example:** `GET /api/url/4/stats/count`
 
 **Response:** `200 OK`
 
