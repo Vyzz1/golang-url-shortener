@@ -101,12 +101,17 @@ curl -L "https://golang-url-shortener-1u52.onrender.com/abc123"
 # → Redirect 302 về https://github.com/golang/go
 
 # 3. Xem danh sách URLs
-curl "http://localhost:8080/api/urls?limit=10&page=0"
-curl "https://golang-url-shortener-1u52.onrender.com/api/urls?limit=10&page=0"
+curl "http://localhost:8080/api/url?limit=10&page=0"
+curl "https://golang-url-shortener-1u52.onrender.com/api/url?limit=10&page=0"
 
 # 4. Xem analytics
-curl "http://localhost:8080/api/stats/1?limit=20&page=0"
-curl  "https://golang-url-shortener-1u52.onrender.com/api/stats/1?limit=20&page=0"
+curl "http://localhost:8080/api/url/1/stats?limit=20&page=0"
+curl  "https://golang-url-shortener-1u52.onrender.com/api/url/1/stats?limit=20&page=0"
+
+# 5. Xem metrics
+curl "http://localhost:8080/api/metrics"
+curl  "https://golang-url-shortener-1u52.onrender.com/api/metrics"
+
 ```
 
 ---
