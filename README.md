@@ -60,7 +60,7 @@ và có khả năng mở rộng khi traffic tăng cao.
 ### Link demo (deployed)
 
 ```
-🔗 https://url-shortener-xyz.railway.app
+🔗 https://golang-url-shortener-1u52.onrender.com
 ```
 
 ### API Endpoints
