@@ -1,8 +1,6 @@
 package utils
 
 import (
-	"strings"
-
 	"github.com/spf13/viper"
 )
 
@@ -14,19 +12,17 @@ type Config struct {
 }
 
 func LoadConfig(path string) (config Config, err error) {
-
-	viper.AddConfigPath(path)
-	viper.SetConfigName(".env")
+	viper.SetConfigFile(path + "/.env")
 	viper.SetConfigType("env")
 
-	viper.AutomaticEnv()
-
-	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 	_ = viper.ReadInConfig()
 
+	viper.AutomaticEnv()
+	viper.BindEnv("HTTP_SERVER_ADDRESS")
+	viper.BindEnv("DB_SOURCE")
+	viper.BindEnv("BASE_URL")
+	viper.BindEnv("FRONTEND_URL")
+
 	err = viper.Unmarshal(&config)
-	if err != nil {
-		return config, err
-	}
-	return config, nil
+	return
 }
