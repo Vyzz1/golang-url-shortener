@@ -125,6 +125,7 @@ func (s *Server) RedirectToLongUrl(ctx *gin.Context) {
 			UserAgent:  clickData.UserAgent,
 			Referer:    clickData.Referer,
 			Country:    clickData.Country,
+			ClickedAt:  pgtype.Timestamp{Time: time.Now(), Valid: true},
 			DeviceType: clickData.DeviceType,
 		})
 
