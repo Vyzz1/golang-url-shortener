@@ -1,13 +1,41 @@
-### Features đã implement
+# URL Shortener - Go Backend
 
-#### Core Features
+## Mục lục
+
+- [Mô tả bài toán](#mô-tả-bài-toán)
+- [Features](#features-đã-implement)
+- [Demo](#demo)
+- [Cách chạy project](#cách-chạy-project)
+- [Cây thư mục Project](#cây-thư-mục-project)
+- [API Documentation](#api-documentation)
+- [Kiến trúc & Thiết kế](#kiến-trúc--thiết-kế)
+- [Quyết định kỹ thuật](#quyết-định-kỹ-thuật)
+- [Trade-offs](#trade-offs)
+- [Thử thách & Giải pháp](#thử-thách--giải-pháp)
+- [Hạn chế & Hướng cải thiện](#hạn-chế--hướng-cải-thiện-trong-tương-lai)
+
+---
+
+# Mô tả bài toán
+
+Bài toán yêu cầu xây dựng một backend service rút gọn URL tương tự như Bitly hoặc TinyURL.
+Hệ thống cho phép người dùng chuyển đổi một URL dài thành một URL ngắn, dễ chia sẻ.
+Khi truy cập URL ngắn, hệ thống sẽ redirect người dùng về URL gốc và đồng thời ghi nhận lượt click.
+Ngoài các chức năng cơ bản, hệ thống cần được thiết kế để xử lý concurrency, đảm bảo hiệu năng,
+và có khả năng mở rộng khi traffic tăng cao.
+
+---
+
+## Features đã implement
+
+### Core Features
 
 - Tạo short URL từ long URL với collision handling
 - Redirect từ short URL về original URL
 - Liệt kê danh sách URLs với pagination
 - Xem thông tin chi tiết của URL (clicks, created time)
 
-#### Advanced Features 🎁
+### Advanced Features
 
 - **Detailed Analytics**: Track IP, User Agent, Device Type, Country, Referer
 - **Click Statistics**: Phân tích chi tiết từng lượt click
@@ -29,7 +57,7 @@
 ### API Endpoints
 
 ```
-POST   /api/shorten                     - Tạo short URL
+POST   /api/url/shorten                     - Tạo short URL
 GET    /:short_code                     - Redirect về URL gốc
 GET    /api/url                         - Danh sách URLs (pagination)
 GET    /api/url/:url_id/stats           - Analytics chi tiết
@@ -42,7 +70,7 @@ GET    /health                          - Health check
 
 ```bash
 # 1. Tạo short URL
-curl -X POST http://localhost:8080/api/shorten \
+curl -X POST http://localhost:8080/api/url/shorten \
   -H "Content-Type: application/json" \
   -d '{"long_url": "https://github.com/golang/go"}'
 
@@ -68,9 +96,9 @@ curl "http://localhost:8080/api/stats/1?limit=20&page=0"
 
 ### Chạy với Docker
 
-````bash
+```bash
 # Clone repository
-git clone https://github.com/username/url-shortener
+git clone https://github.com/Vyzz1/golang-url-shortener url-shortener
 cd url-shortener
 
 
@@ -79,11 +107,84 @@ docker-compose up -d
 docker-compose logs -f app
 
 # Test
+
 curl http://localhost:8080/health
-``
+```
 
+---
 
-##  API Documentation
+## Cây thư mục Project
+
+```
+golang-url-shortener/
+├── .air.toml                    # Config cho Air
+├── .env                         # Environment
+├── docker-compose.yml           # Docker Compose config
+├── Dockerfile                   # Docker image config
+├── go.mod                       # Go module dependencies
+├── go.sum                       # Go module checksums
+├── main.go                      # Entry point của application
+├── Makefile                     # Build automation scripts
+├── README.md                    # Documentation
+├── sqlc.yaml                    # sqlc configuration
+├── wait-for-it.sh              # Script đợi database ready
+│
+├── api/                         # HTTP handlers & routing
+│   ├── metrics.go              # Handler cho /api/metrics
+│   ├── server.go               # Gin server setup & routes
+│   └── url.go                  # Handlers cho URL operations
+│
+├── db/                          # Database layer
+│   ├── migrations/             # Database migration files
+│   │   ├── 000001_init_source.up.sql
+│   │   ├── 000001_init_source.down.sql
+│   │   ├── 000002_unique_orignal_url.up.sql
+│   │   ├── 000002_unique_orignal_url.down.sql
+│   │   ├── 000003_add_click_columns.up.sql
+│   │   └── 000003_add_click_columns.down.sql
+│   │
+│   ├── query/                  # SQL queries (sqlc input)
+│   │   ├── clicks.sql         # Click tracking queries
+│   │   ├── stats.sql          # Statistics queries
+│   │   └── urls.sql           # URL CRUD queries
+│   │
+│   └── sqlc/                   # Generated Go code (sqlc output)
+│       ├── clicks.sql.go      # Generated click queries
+│       ├── db.go              # Database connection
+│       ├── models.go          # Generated models
+│       ├── querier.go         # Query interface
+│       ├── stats.sql.go       # Generated stats queries
+│       ├── store.go           # Store implementation
+│       └── urls.sql.go        # Generated URL queries
+│
+├── middlewares/                 # Gin middlewares
+│   ├── cors.go                 # CORS middleware
+│   └── rate-limit.go           # Rate limiting middleware
+│
+├── tmp/                         # Temporary files (Air hot reload)
+│   ├── build-errors.log
+│   └── main.exe
+│
+└── utils/                       # Utility functions
+    ├── click.go                # Click tracking utilities
+    ├── config.go               # Config loading
+    └── shortcode.go            # Short code generation
+```
+
+**Giải thích cấu trúc:**
+
+- **`main.go`**: Entry point - khởi tạo config, database, server
+- **`api/`**: HTTP layer - Gin handlers, routing, request/response
+- **`db/migrations/`**: SQL migration files cho versioning database schema
+- **`db/query/`**: Raw SQL queries - input cho sqlc
+- **`db/sqlc/`**: Type-safe Go code được generate từ SQL queries
+- **`middlewares/`**: Reusable middlewares (CORS, rate limit)
+- **`utils/`**: Helper functions (config, short code generation, click tracking)
+- **`tmp/`**: Build artifacts cho hot reload
+
+---
+
+## API Documentation
 
 ### Base URL
 
@@ -93,7 +194,7 @@ http://localhost:8080
 
 ### 1. Tạo Short URL
 
-**Endpoint:** `POST /api/shorten`
+**Endpoint:** `POST /api/url/shorten`
 
 **Request:**
 
@@ -231,25 +332,23 @@ Location: https://example.com/very/long/path
 
 ---
 
-
 ### 6. Metrics
 
 **Endpoint:** `GET /api/metrics`
-
 
 **Response:** `200 OK`
 
 ```json
 {
   "total_urls": 42,
-  "total_clicks":1000,
+  "total_clicks": 1000,
   "urls_created_today": 10,
   "clicks_today": 5,
   "top_urls:": [
     {
-      "short_code":"abc",
+      "short_code": "abc",
       "original_url": "https://www.google.com/webhp?hl=vi",
-      "clicks":4,
+      "clicks": 4,
       "tiny_url": "http://localhost:8000/abc"
     }
   ]
@@ -257,9 +356,6 @@ Location: https://example.com/very/long/path
 ```
 
 ---
-
-
-
 
 ### 7. Health Check
 
@@ -276,7 +372,7 @@ Location: https://example.com/very/long/path
 
 ---
 
-##  Kiến trúc & Thiết kế
+## Kiến trúc & Thiết kế
 
 ### Tech Stack
 
@@ -289,40 +385,6 @@ Location: https://example.com/very/long/path
 | **Database Driver** | pgx/v5         | Fastest PostgreSQL driver cho Go            |
 | **Migrations**      | golang-migrate | Standard migration tool                     |
 
-### Project Structure
-
-```
-url-shortener/
-├── cmd/
-│   └── main.go                  # Application entry point
-├── internal/
-│   ├── api/
-│   │   ├── server.go            # Server setup
-│   │   └── url.go               # URL handlers
-│   └── config/
-│       └── config.go            # Configuration
-├── db/
-│   ├── migrations/              # SQL migrations
-│   │   ├── 000001_init.up.sql
-│   │   └── 000001_init.down.sql
-│   ├── queries/                 # sqlc queries
-│   │   └── urls.sql
-│   └── sqlc/                    # Generated code
-│       ├── db.go
-│       ├── models.go
-│       └── urls.sql.go
-├── utils/
-│   ├── shortcode.go             # Short code generation
-│   ├── validator.go             # URL validation
-│   └── analytics.go             # Analytics helpers
-├── docker-compose.yml
-├── Dockerfile
-├── Makefile
-├── sqlc.yaml
-├── go.mod
-└── README.md
-```
-
 ### Database Schema
 
 ![Database Schema](https://res.cloudinary.com/dl8h3byxa/image/upload/v1766939672/url_shortener_ac07bv.png)
@@ -334,7 +396,7 @@ url-shortener/
 3. **Separate `clicks` table**: Chi tiết analytics mà không làm chậm table chính
 4. **Indexes**: Optimize cho queries hay dùng (lookup, list, analytics)
 
-##  Quyết định kỹ thuật
+## Quyết định kỹ thuật
 
 ### 1. Tại sao chọn PostgreSQL thay vì NoSQL?
 
@@ -348,9 +410,9 @@ url-shortener/
 
 **MongoDB/NoSQL:**
 
--  Overkill cho schema đơn giản này
--  ACID transactions phức tạp hơn
--  Không cần flexibility của document-based
+- Overkill cho schema đơn giản này
+- ACID transactions phức tạp hơn
+- Không cần flexibility của document-based
 
 → **Quyết định:** PostgreSQL cho primary storage, có thể thêm Redis cache sau
 
@@ -393,7 +455,7 @@ func GenerateShortCode(length int) (string, error) {
   - Với 1M URLs: collision probability = 0.00003%
   - Retry 3-5 lần là đủ
 - **Distributed-friendly**: Không cần coordination giữa servers
--  **Cons**: Không guarantee shortest code (trade-off chấp nhận được)
+- **Cons**: Không guarantee shortest code (trade-off chấp nhận được)
 
 **Math:**
 
@@ -486,8 +548,8 @@ WHERE short_code = $1;
 **Trade-off:**
 
 - Pros: Simple, flexible, fast
--  Cons: Database lớn hơn
--  Future: Có thể add optional deduplication với query parameter
+- Cons: Database lớn hơn
+- Future: Có thể add optional deduplication với query parameter
 
 ---
 
@@ -524,11 +586,11 @@ func isValidURL(raw string) bool {
 
 **Các edge cases được handle:**
 
--  Empty URL
--  Invalid scheme (ftp://, javascript:, data:)
+- Empty URL
+- Invalid scheme (ftp://, javascript:, data:)
 - Localhost/private IPs (127.0.0.1, 192.168.x.x)
--  URLs > 2048 characters
--  Malformed URLs
+- URLs > 2048 characters
+- Malformed URLs
 
 #### SQL Injection Protection
 
@@ -551,7 +613,6 @@ func isValidURL(raw string) bool {
 - Google Safe Browsing API integration
 - User-reported spam system
 
-
 ---
 
 ### 5. Tại sao dùng sqlc + pgx/v5 thay vì GORM?
@@ -570,8 +631,6 @@ func isValidURL(raw string) bool {
 - **Type-safe**: Errors at compile-time, không phải runtime
 - **Performance**: pgx là fastest PostgreSQL driver
 - **Full control**: Viết raw SQL, optimize queries dễ dàng
-
-
 
 ---
 
@@ -604,8 +663,8 @@ CREATE TABLE clicks (
 **Trade-offs:**
 
 - Pros: Detailed insights, scalable
--  Cons: More storage, complex queries
--  Denormalized counter (`urls.click_count`) cho fast reads
+- Cons: More storage, complex queries
+- Denormalized counter (`urls.click_count`) cho fast reads
 
 **Async tracking:**
 
@@ -626,7 +685,7 @@ go func() {
 
 ---
 
-## ⚖️ Trade-offs
+## Trade-offs
 
 ### 1. Random generation vs Auto-increment
 
@@ -652,7 +711,7 @@ go func() {
 - Đơn giản, không cần check trước khi insert
 - Flexible: Users có thể tạo nhiều links cho cùng URL
 - Performance: Không query TEXT column
-- ❌ Trade-off: Database lớn hơn (storage rẻ, chấp nhận được)
+- Trade-off: Database lớn hơn (storage rẻ, chấp nhận được)
 
 ---
 
@@ -688,11 +747,11 @@ ctx.Redirect(302, originalURL) // Don't wait
 
 - Redirect phải nhanh (<50ms) → UX tốt
 - Click tracking có thể chậm (100-200ms)
--  Trade-off: Có thể mất vài clicks nếu server crash (acceptable)
+- Trade-off: Có thể mất vài clicks nếu server crash (acceptable)
 
 ---
 
-##  Thử thách & Giải pháp
+## Thử thách & Giải pháp
 
 ### Challenge 1: Concurrency - Duplicate short codes
 
@@ -788,4 +847,25 @@ if click.IpAddress.Valid {
 - pgx/v5 type system is type-safe nhưng verbose
 - Trade-off: Verbosity for safety
 
-````
+# Hạn chế & Hướng cải thiện trong tương lai
+
+### Hạn chế hiện tại
+
+- Chưa sử dụng Redis cache cho các short URL được truy cập nhiều, nên mọi request redirect vẫn phải truy vấn database
+- Đang sử dụng offset-based pagination, có thể gây chậm khi số lượng bản ghi rất lớn
+- Rate limiting hiện tại chỉ ở mức in-memory, chưa hỗ trợ môi trường distributed
+- Click tracking được xử lý bất đồng bộ (async), nên có khả năng mất một số lượt click nếu server bị crash
+
+### Hướng cải tiến trong tương lai
+
+- Tích hợp Redis để cache các short URL phổ biến, giúp giảm tải cho database
+- Chuyển sang cursor-based pagination để tối ưu hiệu năng khi dữ liệu lớn
+- Bổ sung tính năng URL expiration và custom alias theo nhu cầu người dùng (hiện chưa implement)
+- Sử dụng background worker hoặc message queue để xử lý click tracking một cách ổn định hơn
+
+### Hướng tới production-ready
+
+- Triển khai service theo mô hình stateless và scale ngang phía sau load balancer
+- Bổ sung centralized logging và monitoring (ví dụ: Prometheus, Grafana)
+- Áp dụng rate limiting phân tán bằng Redis
+- Thiết lập CI/CD pipeline với automated tests để đảm bảo chất lượng code
