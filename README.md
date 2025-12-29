@@ -79,9 +79,16 @@ GET    /health                          - Health check
 
 ```bash
 # 1. Tạo short URL
+# 1. Tạo short URL (Local)
 curl -X POST http://localhost:8080/api/url/shorten \
   -H "Content-Type: application/json" \
   -d '{"long_url": "https://github.com/golang/go"}'
+
+# 1. Tạo short URL (Demo - Render)
+curl -X POST https://golang-url-shortener-1u52.onrender.com/api/url/shorten \
+  -H "Content-Type: application/json" \
+  -d '{"long_url": "https://github.com/golang/go"}'
+
 
 # Response:
 {
@@ -89,14 +96,17 @@ curl -X POST http://localhost:8080/api/url/shorten \
 }
 
 # 2. Sử dụng short URL
-curl -L http://localhost:8080/abc123
+curl -L "http://localhost:8080/abc123"
+curl -L "https://golang-url-shortener-1u52.onrender.com/abc123"
 # → Redirect 302 về https://github.com/golang/go
 
 # 3. Xem danh sách URLs
 curl "http://localhost:8080/api/urls?limit=10&page=0"
+curl "https://golang-url-shortener-1u52.onrender.com/api/urls?limit=10&page=0"
 
 # 4. Xem analytics
 curl "http://localhost:8080/api/stats/1?limit=20&page=0"
+curl  "https://golang-url-shortener-1u52.onrender.com/api/stats/1?limit=20&page=0"
 ```
 
 ---
@@ -115,7 +125,7 @@ docker-compose up -d
 
 docker-compose logs -f app
 
-# Test
+# Test Health
 
 curl http://localhost:8080/health
 ```
@@ -145,13 +155,6 @@ golang-url-shortener/
 │
 ├── db/                          # Database layer
 │   ├── migrations/             # Database migration files
-│   │   ├── 000001_init_source.up.sql
-│   │   ├── 000001_init_source.down.sql
-│   │   ├── 000002_unique_orignal_url.up.sql
-│   │   ├── 000002_unique_orignal_url.down.sql
-│   │   ├── 000003_add_click_columns.up.sql
-│   │   └── 000003_add_click_columns.down.sql
-│   │
 │   ├── query/                  # SQL queries (sqlc input)
 │   │   ├── clicks.sql         # Click tracking queries
 │   │   ├── stats.sql          # Statistics queries
@@ -312,7 +315,7 @@ Location: https://example.com/very/long/path
       "ip_address": "192.168.1.100",
       "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)...",
       "device_type": "desktop",
-      "country": "VN",
+      "country": "VN", //Fix cứng.
       "referer": "https://google.com"
     }
   ],
@@ -624,7 +627,29 @@ func isValidURL(raw string) bool {
 
 ---
 
-### 5. Tại sao dùng sqlc + pgx/v5 thay vì GORM?
+### 5. Performance Considerations
+
+Khi số lượng URLs tăng lên đến hàng triệu bản ghi:
+
+- Truy vấn redirect sử dụng `short_code` với UNIQUE index nên vẫn có độ phức tạp O(log N)
+- Danh sách URLs sử dụng pagination để giới hạn số lượng bản ghi trả về
+- Trường `click_count` được denormalized giúp tránh JOIN khi chỉ cần thống kê tổng lượt click
+- Các bảng được đánh index ở các cột truy vấn thường xuyên như `short_code`, `url_id`
+- Thiết kế này đảm bảo hiệu năng ổn định ngay cả khi dữ liệu tăng lớn
+
+---
+
+### 6. Scalability Considerations
+
+Khi traffic tăng 100x, hệ thống có thể mở rộng theo các hướng sau:
+
+- Service được thiết kế stateless, dễ dàng scale ngang phía sau load balancer
+- Lookup short URL dựa trên index (`short_code`) nên vẫn giữ hiệu năng tốt
+- Click tracking được xử lý bất đồng bộ để không ảnh hưởng đến redirect latency
+- Redis có thể được thêm vào để cache các short URL phổ biến, giảm tải cho database
+- Pagination và denormalized counters giúp các truy vấn đọc giữ tốc độ ổn định
+
+### 7. Tại sao dùng sqlc + pgx/v5 thay vì GORM?
 
 | Feature                 | sqlc + pgx/v5  | GORM                 |
 | ----------------------- | -------------- | -------------------- |
@@ -643,7 +668,7 @@ func isValidURL(raw string) bool {
 
 ---
 
-### 6. Analytics: Clicks table riêng
+### 8. Analytics: Clicks table riêng
 
 **Quyết định: Tách `clicks` table riêng thay vì chỉ có counter**
 
@@ -871,6 +896,7 @@ if click.IpAddress.Valid {
 - Chuyển sang cursor-based pagination để tối ưu hiệu năng khi dữ liệu lớn
 - Bổ sung tính năng URL expiration và custom alias theo nhu cầu người dùng (hiện chưa implement)
 - Sử dụng background worker hoặc message queue để xử lý click tracking một cách ổn định hơn
+- Sử dụng thêm API bên ngoài để lấy country thực sự của người dùng từ IP.
 
 ### Hướng tới production-ready
 
@@ -878,3 +904,17 @@ if click.IpAddress.Valid {
 - Bổ sung centralized logging và monitoring (ví dụ: Prometheus, Grafana)
 - Áp dụng rate limiting phân tán bằng Redis
 - Thiết lập CI/CD pipeline với automated tests để đảm bảo chất lượng code
+
+---
+
+## Tự đánh giá
+
+Em đã hoàn thành đầy đủ các core features theo yêu cầu và bổ sung advanced analytics với clicks tracking để demonstrate khả năng thiết kế database và xử lý concurrency.
+
+Điểm mạnh của bài làm là thiết kế hệ thống hợp lý với PostgreSQL + sqlc/pgx, xử lý race conditions đúng cách, và giải thích rõ ràng các trade-offs kỹ thuật.
+
+Điểm cần cải thiện là chưa có comprehensive test suite và monitoring system cho production.
+
+Nếu có thêm thời gian, em sẽ implement Redis caching layer và authentication để hệ thống production-ready hơn.
+
+Project này giúp em hiểu sâu hơn về database design, concurrency handling, và system scalability trong Go.
