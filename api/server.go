@@ -31,6 +31,8 @@ func (s *Server) setupRouter() {
 	s.router.Use(middleware.CORS(s.config.FrontendURL))
 	s.router.Use(middleware.RateLimit())
 
+	s.router.StaticFile("/favicon.ico", "./Go.svg")
+
 	s.router.GET("/:short_code", s.RedirectToLongUrl)
 
 	s.router.GET("/health", func(ctx *gin.Context) {
